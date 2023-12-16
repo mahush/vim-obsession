@@ -119,14 +119,19 @@ function! ObsessionStatus(...) abort
   return substitute(fmt, '%s', get(['', 'Session', 'Obsession'], numeric), 'g')
 endfunction
 
+let s:one_minute_persist_timer = timer_start(60000, 's:on_persist_timer',{'repeat':-1})
+function! s:on_persist_timer(timer)
+  call s:persist()
+endfunction
+
+function! s:on_vim_quit()
+  call timer_stop(s:one_minute_persist_timer) "prevent calling persist() during exiting
+  call s:persist()
+endfunction
+
 augroup obsession
   autocmd!
-  autocmd VimLeavePre * exe s:persist()
-  autocmd BufEnter *
-        \ if !get(g:, 'obsession_no_bufenter') |
-        \   exe s:persist() |
-        \ endif
-  autocmd User Flags call Hoist('global', 'ObsessionStatus')
+  autocmd QuitPre * call s:on_vim_quit() "QuitPre is called before any window was closed
 augroup END
 
 " vim:set et sw=2:
